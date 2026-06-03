@@ -130,33 +130,18 @@ SLS_ACCESS_KEY_SECRET=your-access-key-secret
 ./patches/proxy.conf:/etc/nginx/conf.d/proxy.conf:ro
 ```
 
-仓库只提供脱敏模板，先复制一份本地配置：
+仓库只提供脱敏模板。执行下面命令，脚本会读取 `.env` 并自动生成本地 `patches/proxy.conf`：
 
 ```bash
-cp patches/proxy.conf.example patches/proxy.conf
+./scripts/generate-proxy-conf.sh
 ```
 
-然后编辑 `patches/proxy.conf`，替换模板中的占位内容：
-
-| 占位内容 | 替换为 |
-| --- | --- |
-| `your-sls-project` | 实际 SLS Project 名称 |
-| `your-region.log.aliyuncs.com` | 实际 SLS Endpoint |
-| `BASE64_ACCESS_KEY_ID_COLON_ACCESS_KEY_SECRET` | `AccessKey ID:AccessKey Secret` 的 Base64 编码 |
-
-可以用下面命令生成 Basic Auth 内容：
-
-```bash
-printf '%s' 'your-access-key-id:your-access-key-secret' | base64
-```
-
-把输出结果填到 `proxy_set_header Authorization "Basic ...";` 的 `Basic` 后面。
+脚本会自动完成 Project、Endpoint 和 Basic Auth 的替换，并把生成文件权限设置为 `600`。生成的 `patches/proxy.conf` 包含真实 AccessKey 派生出的认证信息，已被 `.gitignore` 排除，不要提交到仓库。
 
 这个文件包含具体的 SLS Project、Endpoint 和认证代理规则。新用户搭建时需要确认：
 
-1. `patches/proxy.conf` 中的 Project 名称是否与 `.env` 中的 `SLS_PROJECT` 一致。
-2. `patches/proxy.conf` 中的 SLS Endpoint 是否与 `.env` 中的 `SLS_ENDPOINT` 一致。
-3. 如果切换到新的 AccessKey，确认代理配置中没有继续使用旧的认证信息。
+1. 修改 `.env` 后重新执行 `./scripts/generate-proxy-conf.sh`。
+2. 如果切换到新的 AccessKey，重新执行脚本生成新的 `patches/proxy.conf`。
 
 可以用下面命令快速检查当前代理配置中的 Project 和 Endpoint：
 
@@ -358,9 +343,9 @@ mkdir -p data
 chmod 777 data
 
 cp .env.example .env
-cp patches/proxy.conf.example patches/proxy.conf
 
-# 编辑 .env 和 patches/proxy.conf，填入实际 SLS 配置和 AccessKey。
+# 编辑 .env，填入实际 SLS 配置和 AccessKey。
+./scripts/generate-proxy-conf.sh
 
 docker compose up -d
 docker compose ps
