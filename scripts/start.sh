@@ -38,7 +38,8 @@ for key in ES_PASSWORD SLS_ENDPOINT SLS_PROJECT SLS_ACCESS_KEY_ID SLS_ACCESS_KEY
 done
 
 mkdir -p "$ROOT_DIR/data"
-chmod 777 "$ROOT_DIR/data"
+chown 1000:0 "$ROOT_DIR/data"
+chmod 775 "$ROOT_DIR/data"
 
 cd "$ROOT_DIR"
 

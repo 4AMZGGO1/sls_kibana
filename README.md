@@ -78,10 +78,11 @@ cd /data/sls_kibana
 
 ```bash
 mkdir -p data
-chmod 777 data
+chown 1000:0 data
+chmod 775 data
 ```
 
-`chmod 777` 是为了避免容器内 Elasticsearch 用户没有权限写入数据目录。如果是生产环境，可以改成更严格的属主和权限配置，但必须保证容器内进程可写。
+Elasticsearch 容器通常使用 UID `1000` 写入数据目录。这里把 `data/` 属主改成 `1000:0`，并使用 `775` 权限，避免使用过宽的 `777` 权限。
 
 ## 4. 配置环境变量
 
@@ -246,7 +247,8 @@ docker compose restart kibana
 docker compose down
 rm -rf data/*
 mkdir -p data
-chmod 777 data
+chown 1000:0 data
+chmod 775 data
 docker compose up -d
 ```
 
@@ -315,7 +317,8 @@ docker compose logs -f es
 cd /data/sls_kibana
 
 mkdir -p data
-chmod 777 data
+chown 1000:0 data
+chmod 775 data
 
 cp .env.example .env
 

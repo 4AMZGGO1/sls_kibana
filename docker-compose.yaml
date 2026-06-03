@@ -9,7 +9,7 @@ services:
       - ELASTIC_PASSWORD=${ES_PASSWORD}
       - xpack.security.enabled=true
     volumes:
-      # TODO 这里的./data目录需要提前建立, 确认已经mkdir data && chmod 777 data
+      # TODO 这里的 ./data 目录需要提前建立，并授权给 Elasticsearch 容器用户。
       - ./data:/usr/share/elasticsearch/data
   kproxy:
     image: sls-registry.cn-hangzhou.cr.aliyuncs.com/kproxy/kproxy:2.1.8
