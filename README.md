@@ -41,12 +41,13 @@ ES_JAVA_OPTS=-Xms1G -Xmx1G
 
 ```bash
 cd /data
+git clone git@github.com:4AMZGGO1/sls_kibana.git
 ```
 
 项目目录需要包含以下文件和目录：
 
 ```text
-sls-kibana/
+sls_kibana/
 ├── .env.example
 ├── docker-compose.yaml
 ├── patches/
@@ -69,7 +70,7 @@ sls-kibana/
 进入项目根目录：
 
 ```bash
-cd /data/sls-kibana
+cd /data/sls_kibana
 ```
 
 创建 Elasticsearch 数据目录并赋权：
@@ -337,7 +338,7 @@ docker compose logs -f es
 下面是一组最小可执行命令，适合首次搭建时按顺序执行：
 
 ```bash
-cd /data/sls-kibana
+cd /data/sls_kibana
 
 mkdir -p data
 chmod 777 data
