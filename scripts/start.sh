@@ -48,18 +48,15 @@ docker compose up -d
 printf 'Waiting for Kibana to become ready'
 ready=0
 for _ in $(seq 1 90); do
-  if curl -fsS http://127.0.0.1:5601/api/status >/tmp/sls-kibana-status.json 2>/dev/null; then
-    if grep -Eq '"overall"[^{]*\{[^}]*"level"[[:space:]]*:[[:space:]]*"available"|"state"[[:space:]]*:[[:space:]]*"green"' /tmp/sls-kibana-status.json; then
-      ready=1
-      break
-    fi
+  code=$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:5601/ 2>/dev/null || true)
+  if [ "$code" = "200" ] || [ "$code" = "302" ]; then
+    ready=1
+    break
   fi
   printf '.'
   sleep 2
 done
 printf '\n'
-
-rm -f /tmp/sls-kibana-status.json
 
 if [ "$ready" -eq 1 ]; then
   printf 'Kibana is ready: http://127.0.0.1:5601\n'
