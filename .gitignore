@@ -1,0 +1,6 @@
+.DS_Store
+.env
+data/
+docker-compose.yaml.bak-*
+patches/proxy.conf
+

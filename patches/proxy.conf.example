@@ -1,0 +1,103 @@
+lua_package_path "/workspace/?.lua;;";
+lua_shared_dict auth_cache 10m;
+lua_shared_dict reload_lock 1m;
+
+server {
+    listen 9201;
+    resolver 127.0.0.11;
+
+    error_log /dev/stderr notice;
+
+    location ~ ^/_resolve/index/your-sls-project\.(.*) {
+        access_by_lua_file /workspace/index_resolve_auth.lua;
+
+        proxy_pass https://your-region.log.aliyuncs.com/es/_resolve/index/your-sls-project.$1;
+        proxy_redirect off;
+
+        proxy_set_header Authorization "Basic BASE64_ACCESS_KEY_ID_COLON_ACCESS_KEY_SECRET";
+        proxy_pass_header Authorization;
+
+        proxy_set_header X-Project-Alias "your-sls-project";
+        proxy_set_header X-Rename-Tag-Fields "false";
+        proxy_set_header X-Escape-Inner-Fields "false";
+        proxy_set_header X-Default-Search-Field "";
+        proxy_set_header X-Disable-Match-Phrase-Sql "true";
+        proxy_set_header X-Disable-Kibana-Histogram-Optimize "false";
+        proxy_set_header X-Try-Power-Sql-When-Timeout "";
+        proxy_set_header X-Use-Power-Sql "";
+        proxy_set_header X-Kproxy-Version "2.1.8";
+        proxy_set_header X-Lucene-Query-Strict "true";
+        proxy_set_header X-Enable-Scroll "false";
+    }
+
+    location ~ /_terms_enum$ {
+        default_type application/json;
+        return 200 '{"_shards":{"total":1,"successful":1,"failed":0},"terms":[],"complete":true}';
+    }
+
+    location ~ ^/your-sls-project\.(.*)$ {
+        access_by_lua_file /workspace/index_auth.lua;
+
+        proxy_pass https://your-region.log.aliyuncs.com/es/your-sls-project.$1?$args;
+        proxy_redirect off;
+
+        proxy_set_header Authorization "Basic BASE64_ACCESS_KEY_ID_COLON_ACCESS_KEY_SECRET";
+        proxy_pass_header Authorization;
+
+        proxy_set_header X-Project-Alias "your-sls-project";
+        proxy_set_header X-Rename-Tag-Fields "false";
+        proxy_set_header X-Escape-Inner-Fields "false";
+        proxy_set_header X-Default-Search-Field "";
+        proxy_set_header X-Disable-Match-Phrase-Sql "true";
+        proxy_set_header X-Disable-Kibana-Histogram-Optimize "false";
+        proxy_set_header X-Try-Power-Sql-When-Timeout "";
+        proxy_set_header X-Use-Power-Sql "";
+        proxy_set_header X-Kproxy-Version "2.1.8";
+        proxy_set_header X-Lucene-Query-Strict "true";
+        proxy_set_header X-Enable-Scroll "false";
+    }
+
+    location /_msearch {
+        client_body_buffer_size 1024k;
+        client_max_body_size 1024k;
+
+        access_by_lua_file /workspace/msearch_auth.lua;
+
+        proxy_pass https://your-region.log.aliyuncs.com/es/_msearch;
+        proxy_redirect off;
+
+        proxy_set_header Authorization "Basic BASE64_ACCESS_KEY_ID_COLON_ACCESS_KEY_SECRET";
+        proxy_pass_header Authorization;
+
+        proxy_set_header X-Rename-Tag-Fields "false";
+        proxy_set_header X-Escape-Inner-Fields "false";
+        proxy_set_header X-Default-Search-Field "";
+        proxy_set_header X-Disable-Match-Phrase-Sql "true";
+        proxy_set_header X-Disable-Kibana-Histogram-Optimize "false";
+        proxy_set_header X-Try-Power-Sql-When-Timeout "";
+        proxy_set_header X-Use-Power-Sql "";
+        proxy_set_header X-Kproxy-Version "2.1.8";
+        proxy_set_header X-Lucene-Query-Strict "true";
+        proxy_set_header X-Enable-Scroll "false";
+    }
+
+    location /_kproxy_reload {
+        content_by_lua_file /workspace/config_reload.lua;
+    }
+
+    location /_kproxy_sls_projects {
+        alias /etc/sls_projects.json;
+        default_type application/json;
+    }
+
+    location / {
+        client_max_body_size 256M;
+
+        proxy_pass http://es:9200;
+        proxy_redirect off;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+
