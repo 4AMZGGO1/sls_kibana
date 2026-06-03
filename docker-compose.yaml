@@ -23,8 +23,6 @@ services:
       - SLS_PROJECT=${SLS_PROJECT}
       - SLS_ACCESS_KEY_ID=${SLS_ACCESS_KEY_ID}
       - SLS_ACCESS_KEY_SECRET=${SLS_ACCESS_KEY_SECRET}
-    volumes:
-      - ./patches/proxy.conf:/etc/nginx/conf.d/proxy.conf:ro
   kibana:
     image: sls-registry.cn-hangzhou.cr.aliyuncs.com/kproxy/kibana:7.17.26
     #image: sls-registry.cn-hangzhou.cr.aliyuncs.com/kproxy/kibana:7.17.26-arm64

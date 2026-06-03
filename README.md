@@ -52,8 +52,9 @@ sls_kibana/
 ├── docker-compose.yaml
 ├── patches/
 │   ├── get_fields_stats.js
-│   ├── kibana.yml
-│   └── proxy.conf.example
+│   └── kibana.yml
+├── scripts/
+│   └── start.sh
 └── README.md
 ```
 
@@ -63,7 +64,7 @@ sls_kibana/
 - `docker-compose.yaml`：服务编排文件。
 - `patches/kibana.yml`：Kibana 配置补丁。
 - `patches/get_fields_stats.js`：Kibana 数据可视化补丁。
-- `patches/proxy.conf.example`：kproxy Nginx 代理配置模板。
+- `scripts/start.sh`：自动检查配置、启动服务并等待 Kibana 就绪。
 
 ## 3. 创建数据目录
 
@@ -123,44 +124,23 @@ SLS_ACCESS_KEY_SECRET=your-access-key-secret
 
 > 注意：不要把 `.env` 文件提交到公共仓库，也不要把 `docker compose config` 的完整输出发到公共渠道，因为它会展开并显示明文 AccessKey。
 
-## 5. 检查代理补丁配置
+## 5. 启动服务并等待就绪
 
-当前项目会把 `patches/proxy.conf` 挂载到 kproxy 容器：
-
-```yaml
-./patches/proxy.conf:/etc/nginx/conf.d/proxy.conf:ro
-```
-
-仓库只提供脱敏模板。执行下面命令，脚本会读取 `.env` 并自动生成本地 `patches/proxy.conf`：
+kproxy 会根据 `.env` 自动生成代理配置，不需要手动维护 `patches/proxy.conf`。在项目根目录执行：
 
 ```bash
-./scripts/generate-proxy-conf.sh
+./scripts/start.sh
 ```
 
-脚本会自动完成 Project、Endpoint 和 Basic Auth 的替换，并把生成文件权限设置为 `600`。生成的 `patches/proxy.conf` 包含真实 AccessKey 派生出的认证信息，已被 `.gitignore` 排除，不要提交到仓库。
+脚本会自动完成：
 
-这个文件包含具体的 SLS Project、Endpoint 和认证代理规则。新用户搭建时需要确认：
+- 检查 `.env` 中的必填变量。
+- 创建并授权 `data/` 目录。
+- 执行 `docker compose config` 检查 Compose 配置。
+- 启动所有服务。
+- 轮询 Kibana 状态接口，直到 Kibana ready。
 
-1. 修改 `.env` 后重新执行 `./scripts/generate-proxy-conf.sh`。
-2. 如果切换到新的 AccessKey，重新执行脚本生成新的 `patches/proxy.conf`。
-
-可以用下面命令快速检查当前代理配置中的 Project 和 Endpoint：
-
-```bash
-grep -E "proxy_pass|X-Project-Alias|location" patches/proxy.conf
-```
-
-如果你希望完全依赖 kproxy 镜像按环境变量生成默认配置，可以先咨询项目维护者是否可以移除 `docker-compose.yaml` 中 `kproxy` 服务的 `patches/proxy.conf` 挂载。
-
-## 6. 启动服务
-
-在项目根目录执行：
-
-```bash
-docker compose up -d
-```
-
-查看容器状态：
+启动成功后脚本会输出容器状态。也可以手动查看：
 
 ```bash
 docker compose ps
@@ -175,7 +155,7 @@ docker compose ps
 
 `index-patterner` 是可选初始化服务，用于自动创建 Kibana index pattern。它执行完成后退出是正常现象。
 
-## 7. 查看启动日志
+## 6. 查看启动日志
 
 首次启动 Kibana 需要等待一段时间。可以查看日志确认启动进度：
 
@@ -187,7 +167,7 @@ docker compose logs -f kibana
 
 看到 Kibana 日志中出现服务已监听或 ready 相关信息后，再访问页面。
 
-## 8. 访问 Kibana
+## 7. 访问 Kibana
 
 浏览器打开：
 
@@ -210,7 +190,7 @@ http://服务器IP:5601
 
 登录后进入 Kibana，可在 Discover 中选择自动创建的 index pattern 查询 SLS 日志。
 
-## 9. ARM 机器适配
+## 8. ARM 机器适配
 
 如果部署机器是 Apple Silicon 或 ARM 架构服务器，需要在 `docker-compose.yaml` 中切换 ARM 镜像。
 
@@ -228,9 +208,9 @@ image: sls-registry.cn-hangzhou.cr.aliyuncs.com/kproxy/elasticsearch:7.17.26-arm
 
 `kproxy` 和 `kibana` 也同样切换到带 `-arm64` 后缀的镜像。Compose 文件里已经保留了对应注释行，取消 ARM 镜像注释并注释掉原镜像即可。
 
-## 10. 常用操作
+## 9. 常用操作
 
-### 10.1 停止服务
+### 9.1 停止服务
 
 ```bash
 docker compose down
@@ -238,24 +218,18 @@ docker compose down
 
 这会停止并删除容器，但不会删除 `data/` 中的 Elasticsearch 数据。
 
-### 10.2 重启服务
+### 9.2 重启服务
 
 ```bash
 docker compose restart
 ```
 
-### 10.3 修改配置后重新加载
+### 9.3 修改配置后重新加载
 
 如果修改了 `.env` 或 `docker-compose.yaml`：
 
 ```bash
 docker compose up -d
-```
-
-如果修改了 `patches/proxy.conf`，建议重启 kproxy：
-
-```bash
-docker compose restart kproxy
 ```
 
 如果修改了 `patches/kibana.yml` 或 Kibana 补丁文件，建议重启 Kibana：
@@ -264,7 +238,7 @@ docker compose restart kproxy
 docker compose restart kibana
 ```
 
-### 10.4 清空本地 Elasticsearch 数据
+### 9.4 清空本地 Elasticsearch 数据
 
 谨慎操作。该命令会删除本地 Kibana 配置、索引模式等 Elasticsearch 数据：
 
@@ -276,9 +250,9 @@ chmod 777 data
 docker compose up -d
 ```
 
-## 11. 常见问题
+## 10. 常见问题
 
-### 11.1 Kibana 打不开
+### 10.1 Kibana 打不开
 
 先检查容器是否启动：
 
@@ -294,12 +268,13 @@ docker compose logs -f kibana
 
 常见原因：
 
-- Kibana 首次启动较慢，还没有 ready。
+- Kibana 首次启动较慢，还没有 ready。建议优先使用 `./scripts/start.sh` 等待就绪。
 - 端口 `5601` 被占用。
 - Elasticsearch 没有启动成功。
+- kproxy 没有启动成功。
 - `.env` 中 `ES_PASSWORD` 缺失或与已有 Elasticsearch 数据中的密码不一致。
 
-### 11.2 Elasticsearch 启动失败
+### 10.2 Elasticsearch 启动失败
 
 查看日志：
 
@@ -313,7 +288,7 @@ docker compose logs -f es
 - 机器内存不足。
 - 之前使用过不同密码或不同版本启动，旧数据与当前配置不兼容。
 
-### 11.3 登录失败
+### 10.3 登录失败
 
 确认用户名和密码：
 
@@ -324,16 +299,15 @@ docker compose logs -f es
 
 如果是已经启动过的环境，修改 `.env` 中的 `ES_PASSWORD` 不一定会改变旧 Elasticsearch 数据里的密码。可以恢复原密码，或者在确认不需要旧数据后清空 `data/` 重新初始化。
 
-### 11.4 查不到 SLS 日志
+### 10.4 查不到 SLS 日志
 
 重点检查：
 
 - `SLS_ENDPOINT` 是否填写正确。
 - `SLS_PROJECT` 是否填写正确。
 - AccessKey 是否有效，并且有访问 SLS Project 和 Logstore 的权限。
-- `patches/proxy.conf` 中的 Project 和 Endpoint 是否与 `.env` 一致。
 
-## 12. 最小搭建命令汇总
+## 11. 最小搭建命令汇总
 
 下面是一组最小可执行命令，适合首次搭建时按顺序执行：
 
@@ -346,11 +320,7 @@ chmod 777 data
 cp .env.example .env
 
 # 编辑 .env，填入实际 SLS 配置和 AccessKey。
-./scripts/generate-proxy-conf.sh
-
-docker compose up -d
-docker compose ps
-docker compose logs -f kibana
+./scripts/start.sh
 ```
 
 Kibana 启动完成后访问：
