@@ -40,7 +40,7 @@ ES_JAVA_OPTS=-Xms1G -Xmx1G
 将项目目录放到目标机器，例如：
 
 ```bash
-cd /path/to
+cd /data
 ```
 
 项目目录需要包含以下文件和目录：
@@ -69,7 +69,7 @@ sls-kibana/
 进入项目根目录：
 
 ```bash
-cd /path/to/sls-kibana
+cd /data/sls-kibana
 ```
 
 创建 Elasticsearch 数据目录并赋权：
@@ -337,7 +337,7 @@ docker compose logs -f es
 下面是一组最小可执行命令，适合首次搭建时按顺序执行：
 
 ```bash
-cd /path/to/sls-kibana
+cd /data/sls-kibana
 
 mkdir -p data
 chmod 777 data
