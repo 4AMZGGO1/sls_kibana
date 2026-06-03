@@ -41,7 +41,7 @@ ES_JAVA_OPTS=-Xms1G -Xmx1G
 
 ```bash
 cd /data
-git clone git@github.com:4AMZGGO1/sls_kibana.git
+git clone https://github.com/4AMZGGO1/sls_kibana.git
 ```
 
 项目目录需要包含以下文件和目录：
