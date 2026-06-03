@@ -39,7 +39,6 @@ done
 
 mkdir -p "$ROOT_DIR/data"
 chown 1000:0 "$ROOT_DIR/data"
-chmod 775 "$ROOT_DIR/data"
 
 cd "$ROOT_DIR"
 
